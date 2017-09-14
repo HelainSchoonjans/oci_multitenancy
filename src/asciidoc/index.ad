@@ -1,0 +1,54 @@
+= Lab Instructions
+:icons: font
+
+== Files Of Interest
+- `grails-app/domain/multitenancy/Vehicle.groovy`
+- `grails-app/controllers/multitenancy/VehicleController.groovy`
+- `grails-app/services/multitenancy/VehicleService.groovy`
+- `grails-app/init/multitenancy/BootStrap.groovy`
+- `grails-app/conf/application.yml`
+- `src/integration-test/groovy/multitenancy/VehicleControllerSpec.groovy`
+
+== Running The Tests
+
+Functional tests may be run from the command line using `gradlew`.
+
+    ./gradlew integrationTest
+
+or
+
+    ./gradlew iT
+
+Prior to adding multitenancy capabilities to the app, you will see several failures:
+
+```
+multitenancy.VehicleControllerSpec > if you change tenant, a different vehicle list is returned FAILED
+
+    org.spockframework.runtime.SpockComparisonFailure at VehicleControllerSpec.groovy:15
+Condition not satisfied:
+
+names == ['Audi A3', 'Audi A4']
+|     |
+|     false
+[Audi A3, Audi A4, Ford KA]
+```
+
+== Satisfying VehicleControllerSpec
+
+You will need to add Multi-Tenancy capabilities to the app to satisfy
+the `VehicleControllerSpec` functional test.
+
+NOTE: Learn more about GORM Multi-Tenancy capabilities in the
+http://gorm.grails.org/latest/hibernate/manual/index.html#multiTenancy[Multi-Tenancy]
+section of the GORM documentation.
+
+You need to implement the following changes:
+
+* Modify `grails-app/conf/application.yml` and setup `DISCRIMINATOR` as http://gorm.grails.org/latest/hibernate/manual/index.html#_multi_tenancy_modes[Multi-Tenancy Mode]. For this exercise, use `org.grails.datastore.mapping.multitenancy.web.SessionTenantResolver` as a Tenant Resolver Class.
+* Apply the `grails.gorm.MultiTenant` trait to `Vehicle` domain class. Additionally, modify the `mapping` Closure and define the property `manufacturerName` as `tenantId`.
+* Annotate `VehicleService.groovy` with `grails.gorm.multitenancy.CurrentTenant` transformation. The `CurrentTenant` transformation resolves the current tenant and binds a Hibernate session for the scope of the method.
+* Modify `manufacturer` action at `VehicleController.groovy`. When the action is invoked, change the current tenant. Example: `session.setAttribute(SessionTenantResolver.ATTRIBUTE, name.toLowerCase())`.
+* Modify `BootStrap.groovy`. Wrap service invocations with `Tenants.withId`. `Tenants.withId` executes the given closure with given tenant id for the given datastore. Example: `Tenants.withId('audi') { }`
+
+
+
